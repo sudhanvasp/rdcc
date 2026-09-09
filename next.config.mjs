@@ -1,11 +1,11 @@
-import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   /* config options here */
 };
 
-// Wrapping is safe even with no Sentry env vars set \u2014 it just adds an
+// Wrapping is safe even with no Sentry env vars set — it just adds an
 // upload step for source maps, which itself no-ops without SENTRY_AUTH_TOKEN.
 export default withSentryConfig(nextConfig, {
   silent: true,
