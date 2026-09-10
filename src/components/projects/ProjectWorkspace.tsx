@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -67,18 +67,31 @@ export function ProjectWorkspace({
   const toast = useToast();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
   const [current, setCurrent] = useState(project);
+  const patchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pm = PRIORITY_META[current.priority as keyof typeof PRIORITY_META];
   const sm = PROJECT_STATUS_META[current.status as keyof typeof PROJECT_STATUS_META];
 
-  async function patch(fields: Record<string, unknown>) {
-    setCurrent((c: any) => ({ ...c, ...fields }));
+  async function sendPatch(fields: Record<string, unknown>) {
     await fetch(`/api/projects/${project.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(fields),
     });
     router.refresh();
+  }
+
+  function patch(fields: Record<string, unknown>) {
+    setCurrent((c: any) => ({ ...c, ...fields }));
+    sendPatch(fields);
+  }
+
+  // Dragging the range input fires onChange on every step, so debounce the
+  // network call to one request per pause instead of one per tick.
+  function patchDebounced(fields: Record<string, unknown>) {
+    setCurrent((c: any) => ({ ...c, ...fields }));
+    if (patchTimer.current) clearTimeout(patchTimer.current);
+    patchTimer.current = setTimeout(() => sendPatch(fields), 300);
   }
 
   async function deleteProject() {
@@ -150,7 +163,7 @@ export function ProjectWorkspace({
               max={100}
               step={5}
               value={current.progress}
-              onChange={(e) => patch({ progress: Number(e.target.value) })}
+              onChange={(e) => patchDebounced({ progress: Number(e.target.value) })}
               className="w-28 accent-[#2A5DD9]"
             />
             <span className="text-[12px] text-muted">{current.progress}%</span>

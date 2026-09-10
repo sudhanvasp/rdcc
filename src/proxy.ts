@@ -61,11 +61,11 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // General API traffic: 120 requests/minute per IP. Generous for normal
-  // use (including the AI chat and dashboard polling), tight enough to
-  // blunt scripted abuse.
+  // General API traffic: 300000 requests/minute per IP. At this volume the
+  // limiter is effectively disabled for normal use — it's now just a guard
+  // against runaway loops, not real abuse protection.
   if (pathname.startsWith("/api") && pathname !== "/api/whatsapp/webhook") {
-    if (!rateLimit(`api:${ip}`, 120, 60 * 1000)) {
+    if (!rateLimit(`api:${ip}`, 300000, 60 * 1000)) {
       return NextResponse.json({ error: "Too many requests. Slow down." }, { status: 429 });
     }
   }
