@@ -6,7 +6,18 @@ const secret = new TextEncoder().encode(
   process.env.SESSION_SECRET ?? "dev-secret-do-not-use-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/register", "/api/auth/login", "/api/auth/register", "/api/whatsapp/webhook", "/api/cron/finalize-stale"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/whatsapp/webhook",
+  "/api/cron/finalize-stale",
+];
 
 // ---------------------------------------------------------------------------
 // Basic rate limiting — in-memory, per-process. Good enough protection for
@@ -58,6 +69,14 @@ export async function proxy(req: NextRequest) {
   if (pathname === "/api/auth/register") {
     if (!rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)) {
       return NextResponse.json({ error: "Too many registration attempts. Try again later." }, { status: 429 });
+    }
+  }
+
+  // Forgot-password: 5 attempts per hour per IP — also public and
+  // unauthenticated, and sends real emails, so needs the same guard.
+  if (pathname === "/api/auth/forgot-password") {
+    if (!rateLimit(`forgot-password:${ip}`, 5, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
     }
   }
 

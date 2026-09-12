@@ -3,13 +3,14 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge, Dot } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { Select } from "@/components/ui/Field";
+import { Select, Label, Input, Textarea } from "@/components/ui/Field";
+import { Modal } from "@/components/ui/Modal";
 import {
   PRIORITY_META,
   PROJECT_STATUS_META,
@@ -68,6 +69,20 @@ export function ProjectWorkspace({
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
   const [current, setCurrent] = useState(project);
   const patchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: project.name ?? "",
+    objective: project.objective ?? "",
+    client: project.client ?? "",
+    category: project.category ?? "",
+    deadline: project.deadline ? new Date(project.deadline).toISOString().slice(0, 10) : "",
+    technologies: (project.technologies ?? []).join(", "),
+    division: project.division ?? "rnd",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+
+  const backHref = current.division === "client" ? "/projects" : "/rd";
+  const backLabel = current.division === "client" ? "Projects" : "R&D";
 
   const pm = PRIORITY_META[current.priority as keyof typeof PRIORITY_META];
   const sm = PROJECT_STATUS_META[current.status as keyof typeof PROJECT_STATUS_META];
@@ -94,6 +109,37 @@ export function ProjectWorkspace({
     patchTimer.current = setTimeout(() => sendPatch(fields), 300);
   }
 
+  async function saveEdit() {
+    if (!editForm.name.trim()) return;
+    setEditSaving(true);
+    await sendPatch({
+      name: editForm.name,
+      objective: editForm.objective || null,
+      client: editForm.client || null,
+      category: editForm.category || null,
+      deadline: editForm.deadline || null,
+      technologies: editForm.technologies
+        ? editForm.technologies.split(",").map((t: string) => t.trim()).filter(Boolean)
+        : [],
+      division: editForm.division,
+    });
+    setCurrent((c: any) => ({
+      ...c,
+      name: editForm.name,
+      objective: editForm.objective || null,
+      client: editForm.client || null,
+      category: editForm.category || null,
+      deadline: editForm.deadline || null,
+      technologies: editForm.technologies
+        ? editForm.technologies.split(",").map((t: string) => t.trim()).filter(Boolean)
+        : [],
+      division: editForm.division,
+    }));
+    setEditSaving(false);
+    setEditOpen(false);
+    toast("Project updated");
+  }
+
   async function deleteProject() {
     if (!confirm(`Delete "${current.name}"? This can't be undone.`)) return;
     await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
@@ -103,8 +149,8 @@ export function ProjectWorkspace({
 
   return (
     <div className="space-y-4">
-      <Link href="/projects" className="flex items-center gap-1.5 text-[13px] text-muted hover:text-ink">
-        <ArrowLeft size={14} /> Projects
+      <Link href={backHref} className="flex items-center gap-1.5 text-[13px] text-muted hover:text-ink">
+        <ArrowLeft size={14} /> {backLabel}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -112,6 +158,7 @@ export function ProjectWorkspace({
           <div className="flex items-center gap-2">
             <Dot className={pm.dot} />
             <h1 className="text-[18px] font-semibold text-ink">{current.name}</h1>
+            <Badge>{current.division === "client" ? "Client" : "R&D"}</Badge>
           </div>
           {current.description && (
             <p className="mt-1 max-w-[60ch] text-[13px] text-muted">{current.description}</p>
@@ -123,6 +170,12 @@ export function ProjectWorkspace({
               <Avatar key={m.userId} name={m.name} color={m.avatarColor} size={26} />
             ))}
           </div>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="rounded-md p-2 text-muted hover:bg-canvas hover:text-ink"
+          >
+            <Pencil size={15} />
+          </button>
           <button
             onClick={deleteProject}
             className="rounded-md p-2 text-muted hover:bg-critical-soft hover:text-critical"
@@ -170,7 +223,9 @@ export function ProjectWorkspace({
           </div>
         </Field>
         <Field label="Deadline">
-          <span className="text-[13px] text-ink">{dueLabel(current.deadline)}</span>
+          <span className="text-[13px] text-ink">
+            {current.status === "completed" ? "Completed" : dueLabel(current.deadline)}
+          </span>
         </Field>
         {current.category && <Field label="Category"><Badge>{current.category}</Badge></Field>}
         {current.client && <Field label="Client"><span className="text-[13px] text-ink">{current.client}</span></Field>}
@@ -274,6 +329,56 @@ export function ProjectWorkspace({
           </div>
         </Card>
       )}
+
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Project" width={480}>
+        <div className="max-h-[70vh] space-y-3.5 overflow-y-auto pr-1">
+          <div>
+            <Label>Name</Label>
+            <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+          </div>
+          <div>
+            <Label>Objective</Label>
+            <Textarea value={editForm.objective} onChange={(e) => setEditForm({ ...editForm, objective: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Division</Label>
+              <Select value={editForm.division} onChange={(e) => setEditForm({ ...editForm, division: e.target.value })}>
+                <option value="rnd">R&D</option>
+                <option value="client">Client</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Deadline</Label>
+              <Input type="date" value={editForm.deadline} onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Client name</Label>
+              <Input value={editForm.client} onChange={(e) => setEditForm({ ...editForm, client: e.target.value })} placeholder="Optional" />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} placeholder="e.g. Hardware" />
+            </div>
+          </div>
+          <div>
+            <Label>Technologies</Label>
+            <Input
+              value={editForm.technologies}
+              onChange={(e) => setEditForm({ ...editForm, technologies: e.target.value })}
+              placeholder="Comma-separated, e.g. Arduino, Python"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={editSaving || !editForm.name.trim()} loading={editSaving}>
+              Save changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
