@@ -21,7 +21,9 @@ export default async function TeamPage() {
   const members = allUsers.map((u) => {
     const userTasks = openTasks.filter((t) => t.assigneeId === u.id);
     const projectIds = memberships.filter((m) => m.userId === u.id).map((m) => m.projectId);
-    const userProjects = allProjects.filter((p) => projectIds.includes(p.id));
+    const userProjects = allProjects.filter(
+      (p) => projectIds.includes(p.id) && p.status !== "completed" && p.status !== "archived"
+    );
     const workload = Math.min(100, userTasks.reduce((sum, t) => sum + weight[t.priority], 0));
 
     return {
