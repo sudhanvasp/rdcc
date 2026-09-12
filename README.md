@@ -1,12 +1,14 @@
 # R&D Command Center
 
+**Live at [rdcc.3draxislabs.com](https://rdcc.3draxislabs.com)**
+
 An internal platform for Leap Interactive's R&D team — manage ideas, projects,
 tasks, BOM/inventory, experiments, and team workload in one place, with
 WhatsApp-based idea capture, an AI assistant, and automated email
 reports/reminders.
 
 Built with Next.js 16 (App Router), TypeScript, Tailwind v4, Drizzle ORM, and
-PostgreSQL.
+PostgreSQL. Hosted on Hostinger, database on Neon.
 
 ## Features
 
@@ -45,12 +47,12 @@ PostgreSQL.
 
 ## Getting started
 
-\`\`\`bash
+```bash
 npm install --legacy-peer-deps
 cp .env.example .env   # fill in the values — see below
 npm run db:push
 npm run dev
-\`\`\`
+```
 
 The app needs at minimum:
 
@@ -71,9 +73,9 @@ random people can't just create an account and get in).
 
 1. Go to `/register`, sign up with a real email and password
 2. Connect to your database directly and run:
-   \`\`\`sql
+```sql
    UPDATE users SET role='admin', status='active' WHERE email='your@email.com';
-   \`\`\`
+```
 3. Log in — from here on, use the Team page to approve/manage everyone else
 
 ## Useful scripts
@@ -112,4 +114,11 @@ random people can't just create an account and get in).
 - **Phase 5 integrations** (Slack/GitHub/Google Drive deep integration) —
   intentionally deferred; the Files tab already supports linking out to
   these as plain URLs
-- **Hosting** — currently local-only
+
+## Contributors
+
+- **[naveenreddy](https://github.com/naveenreddy1334)** — original build
+- **[sudhanvasp](https://github.com/sudhanvasp)** — production deployment
+  fixes (Hostinger's older GLIBC needed a webpack build instead of
+  Turbopack's native binaries), UI performance fix (debounced the Progress
+  slider so dragging it doesn't fire a network request per pixel)
