@@ -32,6 +32,7 @@ const updateSchema = z.object({
   category: z.string().optional().nullable(),
   technologies: z.array(z.string()).optional(),
   blockedReason: z.string().optional().nullable(),
+  division: z.enum(["client", "rnd"]).optional(),
 });
 
 export async function GET(

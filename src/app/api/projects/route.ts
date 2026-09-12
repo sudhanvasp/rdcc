@@ -15,6 +15,7 @@ const createSchema = z.object({
   deadline: z.string().optional().nullable(),
   technologies: z.array(z.string()).optional(),
   memberIds: z.array(z.string()).optional(),
+  division: z.enum(["client", "rnd"]).default("rnd"),
 });
 
 export async function GET() {

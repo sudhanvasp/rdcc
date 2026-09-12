@@ -63,13 +63,16 @@ const emptyForm: ProjectFormState = {
 export function ProjectsClient({
   initialProjects,
   teamMembers,
+  division,
 }: {
   initialProjects: Project[];
   teamMembers: TeamMember[];
+  division: "client" | "rnd";
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const basePath = division === "client" ? "/projects" : "/rd";
   const [items, setItems] = useState<Project[]>(initialProjects);
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("all");
   const [modalOpen, setModalOpen] = useState(false);
@@ -80,9 +83,9 @@ export function ProjectsClient({
     if (searchParams.get("new") === "1") {
       setForm(emptyForm);
       setModalOpen(true);
-      router.replace("/projects");
+      router.replace(basePath);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, basePath]);
 
   const visible = useMemo(
     () => (filter === "all" ? items : items.filter((p) => p.status === filter)),
@@ -107,6 +110,7 @@ export function ProjectsClient({
           ? form.technologies.split(",").map((t) => t.trim()).filter(Boolean)
           : [],
         memberIds: form.memberIds,
+        division,
       }),
     });
     setSaving(false);
@@ -137,7 +141,7 @@ export function ProjectsClient({
           ))}
         </div>
         <Button size="sm" onClick={() => { setForm(emptyForm); setModalOpen(true); }}>
-          <Plus size={14} /> New Project
+          <Plus size={14} /> New {division === "client" ? "Project" : "R&D Project"}
         </Button>
       </div>
 
@@ -145,8 +149,14 @@ export function ProjectsClient({
         <Card>
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <FolderKanban size={22} className="text-muted" />
-            <p className="text-[13px] font-medium text-ink">No projects yet</p>
-            <p className="text-[13px] text-muted">Approve an idea, or create a project directly.</p>
+            <p className="text-[13px] font-medium text-ink">
+              {division === "client" ? "No client projects yet" : "No R&D projects yet"}
+            </p>
+            <p className="text-[13px] text-muted">
+              {division === "client"
+                ? "Move something here once a client signs off, or create one directly."
+                : "Approve an idea, or create an R&D project directly."}
+            </p>
           </div>
         </Card>
       ) : (
@@ -172,7 +182,9 @@ export function ProjectsClient({
                     <ProgressBar value={p.progress} />
                     <span className="shrink-0 text-[12px] text-muted">{p.progress}%</span>
                   </div>
-                  <p className="mt-2 text-[12px] text-muted">{dueLabel(p.deadline)}</p>
+                  <p className="mt-2 text-[12px] text-muted">
+                    {p.status === "completed" ? "Completed" : dueLabel(p.deadline)}
+                  </p>
                 </Card>
               </Link>
             );

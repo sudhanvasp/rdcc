@@ -34,6 +34,7 @@ export const ideaStatusEnum = pgEnum("idea_status", [
   "converted",
   "archived",
 ]);
+export const projectDivisionEnum = pgEnum("project_division", ["client", "rnd"]);
 export const projectStatusEnum = pgEnum("project_status", [
   "idea",
   "planning",
@@ -106,6 +107,8 @@ export const users = pgTable("users", {
   avatarColor: text("avatar_color").notNull().default("#2F6FED"),
   availability: integer("availability").notNull().default(100),
   lastDigestSentAt: timestamp("last_digest_sent_at"),
+  resetTokenHash: text("reset_token_hash"),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -153,6 +156,7 @@ export const projects = pgTable("projects", {
   objective: text("objective"),
   priority: priorityEnum("priority").notNull().default("medium"),
   status: projectStatusEnum("status").notNull().default("planning"),
+    division: projectDivisionEnum("division").notNull().default("rnd"),
   startDate: timestamp("start_date"),
   deadline: timestamp("deadline"),
   progress: integer("progress").notNull().default(0),
