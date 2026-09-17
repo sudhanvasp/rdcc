@@ -50,6 +50,7 @@ export function ProjectWorkspace({
   projectTags,
   versions,
   dependencies,
+  isAdmin,
 }: {
   project: any;
   members: { userId: string; name: string; avatarColor: string; roleOnProject: string | null }[];
@@ -63,6 +64,7 @@ export function ProjectWorkspace({
   projectTags: { tagId: string; name: string; color: string }[];
   versions: any[];
   dependencies: { taskId: string; dependsOnId: string; dependsOnTitle: string; dependsOnStatus: string }[];
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -170,55 +172,73 @@ export function ProjectWorkspace({
               <Avatar key={m.userId} name={m.name} color={m.avatarColor} size={26} />
             ))}
           </div>
-          <button
-            onClick={() => setEditOpen(true)}
-            className="rounded-md p-2 text-muted hover:bg-canvas hover:text-ink"
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            onClick={deleteProject}
-            className="rounded-md p-2 text-muted hover:bg-critical-soft hover:text-critical"
-          >
-            <Trash2 size={15} />
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setEditOpen(true)}
+              className="rounded-md p-2 text-muted hover:bg-canvas hover:text-ink"
+            >
+              <Pencil size={15} />
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={deleteProject}
+              className="rounded-md p-2 text-muted hover:bg-critical-soft hover:text-critical"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-4 rounded-md border border-line bg-surface px-4 py-3">
         <Field label="Status">
-          <select
-            value={current.status}
-            onChange={(e) => patch({ status: e.target.value })}
-            className={`rounded-[5px] border-0 px-2 py-0.5 text-[12px] font-medium ${sm.soft} ${sm.text}`}
-          >
-            {Object.entries(PROJECT_STATUS_META).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
+          {isAdmin ? (
+            <select
+              value={current.status}
+              onChange={(e) => patch({ status: e.target.value })}
+              className={`rounded-[5px] border-0 px-2 py-0.5 text-[12px] font-medium ${sm.soft} ${sm.text}`}
+            >
+              {Object.entries(PROJECT_STATUS_META).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+          ) : (
+            <span className={`inline-block rounded-[5px] px-2 py-0.5 text-[12px] font-medium ${sm.soft} ${sm.text}`}>
+              {sm.label}
+            </span>
+          )}
         </Field>
         <Field label="Priority">
-          <select
-            value={current.priority}
-            onChange={(e) => patch({ priority: e.target.value })}
-            className="rounded-[5px] border border-line px-2 py-0.5 text-[12px] font-medium text-ink"
-          >
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
+          {isAdmin ? (
+            <select
+              value={current.priority}
+              onChange={(e) => patch({ priority: e.target.value })}
+              className="rounded-[5px] border border-line px-2 py-0.5 text-[12px] font-medium text-ink"
+            >
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          ) : (
+            <span className="text-[13px] capitalize text-ink">{current.priority}</span>
+          )}
         </Field>
         <Field label="Progress">
           <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={current.progress}
-              onChange={(e) => patchDebounced({ progress: Number(e.target.value) })}
-              className="w-28 accent-[#2A5DD9]"
-            />
+            {isAdmin ? (
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={current.progress}
+                onChange={(e) => patchDebounced({ progress: Number(e.target.value) })}
+                className="w-28 accent-[#2A5DD9]"
+              />
+            ) : (
+              <ProgressBar value={current.progress} />
+            )}
             <span className="text-[12px] text-muted">{current.progress}%</span>
           </div>
         </Field>

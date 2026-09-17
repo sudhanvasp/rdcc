@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { projects, projectMembers, tasks, users, activities, bomItems, experiments, links, tags, projectTags, projectVersions, taskDependencies } from "@/db/schema";
 import { eq, asc, desc, inArray } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 import { ProjectWorkspace } from "@/components/projects/ProjectWorkspace";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await getSession();
 
   const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
   if (!project) notFound();
@@ -90,6 +92,7 @@ export default async function ProjectDetailPage({
       projectTags={projectTagRows}
       versions={versionRows}
       dependencies={dependencyRows}
+      isAdmin={session?.role === "admin"}
     />
   );
 }

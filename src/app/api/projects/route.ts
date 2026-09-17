@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
     })
     .returning();
 
-  const members = Array.from(new Set([session.userId, ...(memberIds ?? [])]));
+  const members = Array.from(
+    new Set(memberIds && memberIds.length > 0 ? memberIds : [session.userId])
+  );
   await db.insert(projectMembers).values(
     members.map((userId) => ({ projectId: created.id, userId }))
   );

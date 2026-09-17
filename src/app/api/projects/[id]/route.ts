@@ -90,6 +90,9 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.role !== "admin") {
+    return NextResponse.json({ error: "Only an admin can edit a project" }, { status: 403 });
+  }
   const { id } = await params;
 
   const body = await req.json().catch(() => null);
