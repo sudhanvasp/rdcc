@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Label, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deactivated = searchParams.get("deactivated") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,11 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={onSubmit} className="rounded-md border border-line bg-surface p-5">
+          {deactivated && (
+            <p className="mb-4 rounded-md bg-warning-soft px-3 py-2 text-[13px] text-warning">
+              This account has been deactivated. Contact your admin if you think this is a mistake.
+            </p>
+          )}
           <div className="mb-4">
             <Label>Email</Label>
             <Input
@@ -89,5 +96,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

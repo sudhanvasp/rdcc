@@ -23,7 +23,7 @@ const id = () =>
 // ---------------------------------------------------------------------------
 
 export const userRoleEnum = pgEnum("user_role", ["admin", "member"]);
-export const userStatusEnum = pgEnum("user_status", ["pending", "active"]);
+export const userStatusEnum = pgEnum("user_status", ["pending", "active", "deactivated"]);
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high"]);
 export const complexityEnum = pgEnum("complexity", ["low", "medium", "high"]);
 export const ideaStatusEnum = pgEnum("idea_status", [

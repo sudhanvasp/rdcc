@@ -40,6 +40,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (user.status === "deactivated") {
+    return NextResponse.json(
+      { error: "This account has been deactivated." },
+      { status: 403 }
+    );
+  }
+
   await setSessionCookie({
     userId: user.id,
     name: user.name,

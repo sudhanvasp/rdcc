@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Copy, Check, Pencil, Phone, UserCheck, X, Clock, KeyRound } from "lucide-react";
+import { Plus, Copy, Check, Pencil, Phone, UserCheck, X, Clock, KeyRound, UserX, RotateCcw } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -32,22 +32,34 @@ type PendingUser = {
   createdAt: string;
 };
 
+type DeactivatedUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 const emptyCreateForm = { name: "", email: "", phone: "", password: "", role: "member" as "admin" | "member", skills: "" };
 const emptyEditForm = { name: "", email: "", phone: "", role: "member" as "admin" | "member", skills: "" };
 
 export function TeamClient({
   initialMembers,
   initialPending,
+  initialDeactivated,
   isAdmin,
+  currentUserId,
 }: {
   initialMembers: Member[];
   initialPending: PendingUser[];
+  initialDeactivated: DeactivatedUser[];
   isAdmin: boolean;
+  currentUserId: string;
 }) {
   const toast = useToast();
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [pending, setPending] = useState<PendingUser[]>(initialPending);
+  const [deactivated, setDeactivated] = useState<DeactivatedUser[]>(initialDeactivated);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyCreateForm);
   const [saving, setSaving] = useState(false);
@@ -210,6 +222,57 @@ export function TeamClient({
     toast("Request rejected");
   }
 
+  async function deactivateMember(m: Member) {
+    if (!confirm(`Deactivate ${m.name}? They'll be logged out immediately and won't be able to log back in. You can reactivate them later.`)) return;
+    setDeactivatingId(m.id);
+    const res = await fetch(`/api/team/${m.id}/deactivate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: false }),
+    });
+    setDeactivatingId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast(data.error ?? "Couldn't deactivate that person. Try again.", "error");
+      return;
+    }
+    setMembers((prev) => prev.filter((x) => x.id !== m.id));
+    setDeactivated((prev) => [...prev, { id: m.id, name: m.name, email: m.email }]);
+    toast(`${m.name} deactivated`);
+  }
+
+  async function reactivateMember(d: DeactivatedUser) {
+    setDeactivatingId(d.id);
+    const res = await fetch(`/api/team/${d.id}/deactivate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: true }),
+    });
+    setDeactivatingId(null);
+    if (!res.ok) {
+      toast("Couldn't reactivate that person. Try again.", "error");
+      return;
+    }
+    const data = await res.json();
+    setDeactivated((prev) => prev.filter((x) => x.id !== d.id));
+    setMembers((prev) => [
+      ...prev,
+      {
+        id: data.member.id,
+        name: data.member.name,
+        email: data.member.email,
+        role: data.member.role,
+        avatarColor: data.member.avatarColor,
+        skills: data.member.skills,
+        phone: data.member.phone,
+        openTaskCount: 0,
+        workload: 0,
+        projectNames: [],
+      },
+    ]);
+    toast(`${d.name} reactivated`);
+  }
+
   return (
     <div className="space-y-4">
       {isAdmin && pending.length > 0 && (
@@ -251,6 +314,32 @@ export function TeamClient({
         </Card>
       )}
 
+      {isAdmin && deactivated.length > 0 && (
+        <Card>
+          <CardHeader title={`Deactivated (${deactivated.length})`} />
+          <div className="divide-y divide-line">
+            {deactivated.map((d) => (
+              <div key={d.id} className="flex items-center gap-3 px-4 py-3">
+                <UserX size={16} className="shrink-0 text-muted" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] text-ink">{d.name}</p>
+                  <p className="truncate text-[12px] text-muted">{d.email}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => reactivateMember(d)}
+                  loading={deactivatingId === d.id}
+                  disabled={deactivatingId === d.id}
+                >
+                  <RotateCcw size={13} /> Reactivate
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {isAdmin && (
         <div className="flex justify-end">
           <Button size="sm" onClick={() => setModalOpen(true)}>
@@ -283,6 +372,16 @@ export function TeamClient({
                   <button onClick={() => openEdit(m)} className="rounded-md p-1.5 text-muted hover:bg-canvas hover:text-ink">
                     <Pencil size={14} />
                   </button>
+                  {m.id !== currentUserId && (
+                    <button
+                      onClick={() => deactivateMember(m)}
+                      disabled={deactivatingId === m.id}
+                      title="Deactivate (e.g. they left)"
+                      className="rounded-md p-1.5 text-muted hover:bg-critical-soft hover:text-critical disabled:opacity-40"
+                    >
+                      <UserX size={14} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
