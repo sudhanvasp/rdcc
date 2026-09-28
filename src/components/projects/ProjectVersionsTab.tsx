@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 import { formatDate } from "@/lib/utils";
+import { toBase64 } from "@/lib/text-transport";
 
 type Version = {
   id: string;
@@ -29,6 +30,20 @@ const EXTENSIONS: Record<string, string> = {
   arduino: "ino", html: "html", css: "css", sql: "sql", json: "json", yaml: "yml", other: "txt",
 };
 
+// Turns a failed response into a message that says what actually went wrong,
+// instead of one generic error for every possible failure.
+async function describeFailure(res: Response): Promise<string> {
+  if ((res.headers.get("content-type") ?? "").includes("application/json")) {
+    const data = await res.json().catch(() => null);
+    if (data?.error) return data.error;
+  }
+  // Our API always answers in JSON, so anything else came from somewhere else.
+  if (res.status >= 500) {
+    return `Server error (HTTP ${res.status}). Check the Hostinger runtime logs for details.`;
+  }
+  return `The request was blocked (HTTP ${res.status}) before it reached the app. A firewall on the host may be rejecting the pasted content.`;
+}
+
 const emptyForm = { label: "", changes: "", code: "", language: "javascript" };
 
 export function ProjectVersionsTab({
@@ -49,27 +64,36 @@ export function ProjectVersionsTab({
   async function submit() {
     if (!form.label.trim()) return;
     setSaving(true);
-    const res = await fetch("/api/project-versions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        projectId,
-        label: form.label,
-        changes: form.changes || undefined,
-        code: form.code || undefined,
-        language: form.code ? form.language : undefined,
-      }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      toast("Couldn't log that version. Try again.", "error");
-      return;
+    try {
+      const res = await fetch("/api/project-versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          label: form.label,
+          // Notes and code are sent base64-encoded so code-looking text (SQL,
+          // <script>, shell commands...) can't be mistaken for an attack by a
+          // firewall in front of the app. The API decodes them before saving.
+          changes: form.changes ? toBase64(form.changes) : undefined,
+          code: form.code ? toBase64(form.code) : undefined,
+          language: form.code ? form.language : undefined,
+          encoded: true,
+        }),
+      });
+      if (!res.ok) {
+        toast(await describeFailure(res), "error");
+        return;
+      }
+      const data = await res.json();
+      setVersions((prev) => [data.version, ...prev]);
+      setModalOpen(false);
+      setForm(emptyForm);
+      toast("Version logged");
+    } catch {
+      toast("Couldn't reach the server. Check your connection and try again.", "error");
+    } finally {
+      setSaving(false);
     }
-    const data = await res.json();
-    setVersions((prev) => [data.version, ...prev]);
-    setModalOpen(false);
-    setForm(emptyForm);
-    toast("Version logged");
   }
 
   async function remove(id: string) {
