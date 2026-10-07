@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   primaryKey,
   index,
+  date,
 } from "drizzle-orm/pg-core";
 
 const id = () =>
@@ -672,3 +673,19 @@ export const bomItemsRelations = relations(bomItems, ({ one }) => ({
     references: [projects.id],
   }),
 }));
+
+export const logVisibilityEnum = pgEnum("log_visibility", ["public", "private"]);
+
+export const dailyLogs = pgTable(
+  "daily_logs",
+  {
+    id: id(),
+    userId: text("user_id").notNull().references(() => users.id),
+    projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+    logDate: date("log_date", { mode: "string" }).notNull(),
+    visibility: logVisibilityEnum("visibility").notNull().default("public"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("daily_logs_date_idx").on(t.logDate)]
+);
