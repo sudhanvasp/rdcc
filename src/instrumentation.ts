@@ -44,7 +44,7 @@ export async function register() {
     checkEventReminders().catch((err) => {
       console.error("checkEventReminders failed:", err);
     });
-  }, 60 * 1000);
+  }, 30 * 60 * 1000);
 }
 
 export async function onRequestError(...args: Parameters<typeof import("@sentry/nextjs").captureRequestError>) {
